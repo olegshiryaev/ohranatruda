@@ -10,22 +10,40 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# Local .env is optional; injected environment variables always take precedence.
+load_dotenv(BASE_DIR / ".env", override=False)
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-z5art)w_fpha0q8n(jilrsl$e%^q00tz-1di20#fx=6+l_ajq2"
+_debug = os.environ.get("DEBUG", "false").strip().lower()
+if _debug not in {"true", "false", "1", "0", "yes", "no", "on", "off"}:
+    raise ImproperlyConfigured("DEBUG must be a boolean (true/false).")
+DEBUG = _debug in {"true", "1", "yes", "on"}
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "Set SECRET_KEY in the environment or a local .env file."
+    )
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+if not ALLOWED_HOSTS:
+    if DEBUG:
+        ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+    else:
+        raise ImproperlyConfigured("Set ALLOWED_HOSTS when DEBUG is false.")
 
 
 # Application definition
